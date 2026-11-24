@@ -1,0 +1,33 @@
+{
+  "name": "Cafe thank-you WhatsApp",
+  "nodes": [
+    {
+      "parameters": { "httpMethod": "POST", "path": "cafe-events", "options": {} },
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 0],
+      "webhookId": "cafe-events"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://graph.facebook.com/v20.0/YOUR_PHONE_NUMBER_ID/messages",
+        "sendHeaders": true,
+        "headerParameters": { "parameters": [{ "name": "Authorization", "value": "Bearer YOUR_WHATSAPP_TOKEN" }] },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ messaging_product: 'whatsapp', to: $json.body.phone, type: 'template', template: { name: 'thanks_for_visiting', language: { code: 'en' }, components: [{ type: 'body', parameters: [{ type: 'text', text: $json.body.name }] }] } }) }}",
+        "options": {}
+      },
+      "name": "Send WhatsApp thanks",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [260, 0]
+    }
+  ],
+  "connections": {
+    "Webhook": { "main": [[{ "node": "Send WhatsApp thanks", "type": "main", "index": 0 }]] }
+  },
+  "settings": {}
+}

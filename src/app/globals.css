@@ -1,0 +1,21 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body { @apply bg-sage font-body text-ink antialiased; }
+  h1, h2, h3 { @apply font-display; }
+  :focus-visible { @apply outline outline-2 outline-offset-2 outline-chilli; }
+}
+
+@layer components {
+  .btn { @apply rounded-xl px-4 py-2.5 font-semibold transition active:scale-95 disabled:opacity-50; }
+  .btn-main { @apply btn bg-chilli text-white hover:bg-chilli/90; }
+  .btn-alt { @apply btn bg-ink text-white; }
+  .btn-soft { @apply btn bg-white text-ink ring-1 ring-ink/15; }
+  .input { @apply w-full rounded-xl bg-white px-3 py-2.5 outline-none ring-1 ring-ink/20 focus:ring-2 focus:ring-chilli; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; animation: none !important; }
+}
