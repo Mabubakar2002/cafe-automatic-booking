@@ -21,7 +21,9 @@ Next.js 14 + Tailwind + Supabase. Customers scan a table QR, order and pay; the 
 ## Deploy
 
 1. Run the complete `supabase/schema.sql` in the Supabase SQL editor. The app needs the tables created there, including `cafe_tables` and `table_sessions`; the schema seeds tables 1-10, but does not add menu categories or items.
-2. In Supabase Authentication, create an admin and a kitchen user. Assign each user a row in `staff` using the matching Auth user ID, for example:
+2. To add the example categories, 20 menu items (including offers), and add-ons, run `supabase/seed_menu.sql`. It is repeatable and does not change stock, customers, or orders; update example prices in Admin to match your cafe.
+3. In Supabase Authentication > URL Configuration, set the Site URL to your production app's `/set-password` route (for example, `https://your-cafe.vercel.app/set-password`). Allow the production app and local development URLs, for example `https://your-cafe.vercel.app/**` and `http://localhost:3000/**`.
+4. Invite an admin and a kitchen user from Authentication > Users. Each person sets their own password through the invitation link. Assign each user a row in `staff` using the matching Auth user ID, for example:
 
    ```sql
    insert into staff (user_id, role)
@@ -33,8 +35,8 @@ Next.js 14 + Tailwind + Supabase. Customers scan a table QR, order and pay; the 
    on conflict (user_id) do update set role = excluded.role;
    ```
 
-3. Import the GitHub repository in Vercel and set `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY` in the Vercel project settings. Keep the service role key server-side only, then redeploy.
-4. Sign in with the Supabase Auth accounts you created (the default `admin@example.com` and `chef@example.com` credentials are local-development-only). Add menu categories and items from Admin.
+5. Import the GitHub repository in Vercel and set `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY` in the Vercel project settings. Keep the service role key server-side only, then redeploy.
+6. Sign in with the Supabase Auth accounts you created (the default `admin@example.com` and `chef@example.com` credentials are local-development-only). Add or edit menu categories and items from Admin.
 
 If table availability fails or the menu is unavailable after deployment, check the Vercel function logs for the database error and confirm the schema and all three Vercel environment variables are configured for the active deployment.
 
