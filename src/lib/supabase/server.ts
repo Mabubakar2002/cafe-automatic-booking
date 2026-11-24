@@ -2,11 +2,7 @@ import { createClient } from '@supabase/supabase-js'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { createLocalServerClient } from '../local-db/server-client'
-
-export const isLocalMode = () => {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
-  return !url || url === 'local' || url.startsWith('http://localhost')
-}
+import { isLocalMode } from './mode'
 
 // Service-key client: bypasses RLS, so use it only inside API routes.
 export const db = () => {

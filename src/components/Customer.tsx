@@ -51,7 +51,7 @@ export default function Customer({ table }: { table: number }) {
   const [rating, setRating] = useState(0)
   const [comment, setComment] = useState('')
   const [showScratch, setShowScratch] = useState(false)
-  const [tableStatus, setTableStatus] = useState<'checking' | 'available' | 'booked'>('checking')
+  const [tableStatus, setTableStatus] = useState<'checking' | 'available' | 'booked' | 'unavailable'>('checking')
   const [tipPercent, setTipPercent] = useState(0)
   const [customTip, setCustomTip] = useState('')
   const [loyalty, setLoyalty] = useState<any>(null)
@@ -65,13 +65,20 @@ export default function Customer({ table }: { table: number }) {
     setCart(JSON.parse(localStorage.getItem('cafe-cart-' + table) || '[]'))
     const sessionId = localStorage.getItem('cafe-sid')
     fetch('/api/table-status?table=' + table + (sessionId ? '&sessionId=' + encodeURIComponent(sessionId) : ''))
-      .then(r => r.json())
-      .then(r => setTableStatus(r.booked ? 'booked' : 'available'))
-      .catch(() => setTableStatus('available'))
+      .then(async r => {
+        if (!r.ok) throw new Error('Could not check table availability')
+        const result = await r.json()
+        if (typeof result.booked !== 'boolean') throw new Error('Invalid table availability response')
+        setTableStatus(result.booked ? 'booked' : 'available')
+      })
+      .catch(() => setTableStatus('unavailable'))
     fetch('/api/menu')
-      .then(r => r.json())
+      .then(r => {
+        if (!r.ok) throw new Error('The cafe menu is unavailable')
+        return r.json()
+      })
       .then(setMenu)
-      .catch(() => setMsg({ t: 'The menu could not load. Check your internet connection.', bad: true }))
+      .catch(() => setMsg({ t: 'The cafe menu is temporarily unavailable. Please try again later.', bad: true }))
     const t = setInterval(() => setNow(Date.now()), 30000)
     return () => clearInterval(t)
   }, [table])
@@ -267,6 +274,17 @@ export default function Customer({ table }: { table: number }) {
 
   if (tableStatus === 'checking') {
     return <div className="p-6 text-center text-ink/60">Checking table availability...</div>
+  }
+  if (tableStatus === 'unavailable') {
+    return (
+      <main className="flex min-h-[70vh] items-center justify-center px-6">
+        <section className="w-full rounded-3xl bg-white p-6 text-center shadow-sm ring-1 ring-ink/10">
+          <h1 className="text-2xl font-extrabold">Table status is temporarily unavailable</h1>
+          <p className="mt-2 text-ink/60">Please try again shortly or ask a staff member for help.</p>
+          <button className="btn-main mt-5 w-full" onClick={() => location.reload()}>Try Again</button>
+        </section>
+      </main>
+    )
   }
   if (tableStatus === 'booked') {
     return (

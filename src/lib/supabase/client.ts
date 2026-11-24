@@ -1,12 +1,8 @@
 import { createBrowserClient } from '@supabase/ssr'
 import { createLocalClient } from '../local-db/client'
+import { isLocalMode } from './mode'
 
 let client: any
-
-export const isLocalMode = () => {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
-  return !url || url === 'local' || url.startsWith('http://localhost')
-}
 
 export const supabase = () => {
   if (isLocalMode()) {

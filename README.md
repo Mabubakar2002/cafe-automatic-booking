@@ -20,7 +20,23 @@ Next.js 14 + Tailwind + Supabase. Customers scan a table QR, order and pay; the 
 
 ## Deploy
 
-Push to GitHub and import in Vercel. Add the same variables from `.env.local`. Keep `SUPABASE_SERVICE_ROLE_KEY` server-side only.
+1. Run the complete `supabase/schema.sql` in the Supabase SQL editor. The app needs the tables created there, including `cafe_tables` and `table_sessions`; the schema seeds tables 1-10, but does not add menu categories or items.
+2. In Supabase Authentication, create an admin and a kitchen user. Assign each user a row in `staff` using the matching Auth user ID, for example:
+
+   ```sql
+   insert into staff (user_id, role)
+   select id, 'admin' from auth.users where email = 'admin@your-cafe.com'
+   on conflict (user_id) do update set role = excluded.role;
+
+   insert into staff (user_id, role)
+   select id, 'kitchen' from auth.users where email = 'kitchen@your-cafe.com'
+   on conflict (user_id) do update set role = excluded.role;
+   ```
+
+3. Import the GitHub repository in Vercel and set `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY` in the Vercel project settings. Keep the service role key server-side only, then redeploy.
+4. Sign in with the Supabase Auth accounts you created (the default `admin@example.com` and `chef@example.com` credentials are local-development-only). Add menu categories and items from Admin.
+
+If table availability fails or the menu is unavailable after deployment, check the Vercel function logs for the database error and confirm the schema and all three Vercel environment variables are configured for the active deployment.
 
 ## WhatsApp thank-you (n8n)
 

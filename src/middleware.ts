@@ -1,10 +1,6 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
-
-const isLocalMode = () => {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
-  return !url || url === 'local' || url.startsWith('http://localhost')
-}
+import { isLocalMode } from '@/lib/supabase/mode'
 
 // Only signed-in staff reach /kitchen; only admins reach /admin.
 export async function middleware(req: NextRequest) {

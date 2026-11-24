@@ -1,8 +1,10 @@
 'use client'
 import { useState } from 'react'
 import { supabase } from '@/lib/supabase/client'
+import { isLocalMode } from '@/lib/supabase/mode'
 
 export default function Login() {
+  const localMode = isLocalMode()
   const [f, setF] = useState({ email: '', password: '' })
   const [err, setErr] = useState('')
   const [busy, setBusy] = useState(false)
@@ -36,35 +38,41 @@ export default function Login() {
           <button className="btn-main w-full" disabled={busy}>Sign in</button>
         </form>
 
-        <div className="rounded-2xl bg-white/80 p-4 text-xs space-y-2 backdrop-blur-sm">
-          <p className="font-bold text-ink/80">Default local login credentials:</p>
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              type="button"
-              className="rounded-lg bg-ink/10 p-2 text-left hover:bg-ink/20 transition"
-              onClick={() => {
-                setF({ email: 'admin@example.com', password: 'admin123' })
-                submit(undefined, { email: 'admin@example.com', password: 'admin123' })
-              }}
-            >
-              <div className="font-bold text-ink">Admin Login</div>
-              <div className="text-ink/60">admin@example.com</div>
-              <div className="text-ink/40">pass: admin123</div>
-            </button>
-            <button
-              type="button"
-              className="rounded-lg bg-ink/10 p-2 text-left hover:bg-ink/20 transition"
-              onClick={() => {
-                setF({ email: 'chef@example.com', password: 'chef123' })
-                submit(undefined, { email: 'chef@example.com', password: 'chef123' })
-              }}
-            >
-              <div className="font-bold text-ink">Kitchen Login</div>
-              <div className="text-ink/60">chef@example.com</div>
-              <div className="text-ink/40">pass: chef123</div>
-            </button>
+        {localMode ? (
+          <div className="rounded-2xl bg-white/80 p-4 text-xs space-y-2 backdrop-blur-sm">
+            <p className="font-bold text-ink/80">Default local login credentials:</p>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                className="rounded-lg bg-ink/10 p-2 text-left hover:bg-ink/20 transition"
+                onClick={() => {
+                  setF({ email: 'admin@example.com', password: 'admin123' })
+                  submit(undefined, { email: 'admin@example.com', password: 'admin123' })
+                }}
+              >
+                <div className="font-bold text-ink">Admin Login</div>
+                <div className="text-ink/60">admin@example.com</div>
+                <div className="text-ink/40">pass: admin123</div>
+              </button>
+              <button
+                type="button"
+                className="rounded-lg bg-ink/10 p-2 text-left hover:bg-ink/20 transition"
+                onClick={() => {
+                  setF({ email: 'chef@example.com', password: 'chef123' })
+                  submit(undefined, { email: 'chef@example.com', password: 'chef123' })
+                }}
+              >
+                <div className="font-bold text-ink">Kitchen Login</div>
+                <div className="text-ink/60">chef@example.com</div>
+                <div className="text-ink/40">pass: chef123</div>
+              </button>
+            </div>
           </div>
-        </div>
+        ) : (
+          <p className="rounded-2xl bg-white/80 p-4 text-xs text-ink/70">
+            Sign in with a staff account created in Supabase Auth and assigned a role by your cafe administrator.
+          </p>
+        )}
       </div>
     </main>
   )
