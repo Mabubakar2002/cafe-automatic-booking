@@ -35,6 +35,33 @@ export default function SetPassword() {
         }
         url.searchParams.delete('code')
         window.history.replaceState({}, '', url.toString())
+      } else {
+        const hash = new URLSearchParams(url.hash.slice(1))
+        const type = hash.get('type')
+        const accessToken = hash.get('access_token')
+        const refreshToken = hash.get('refresh_token')
+
+        // Supabase recovery and invitation links may return tokens in the URL hash.
+        if (accessToken && refreshToken && (type === 'recovery' || type === 'invite')) {
+          const { error: sessionError } = await sb.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+          })
+          if (sessionError) {
+            if (active) setError(sessionError.message)
+            if (active) setLoading(false)
+            return
+          }
+          url.hash = ''
+          window.history.replaceState({}, '', url.toString())
+        } else {
+          const linkError = hash.get('error_description') || hash.get('error')
+          if (linkError) {
+            if (active) setError(linkError.replace(/\+/g, ' '))
+            if (active) setLoading(false)
+            return
+          }
+        }
       }
 
       const { data, error: sessionError } = await sb.auth.getSession()
