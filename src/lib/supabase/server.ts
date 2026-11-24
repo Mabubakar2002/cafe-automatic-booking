@@ -4,6 +4,9 @@ import { cookies } from 'next/headers'
 import { createLocalServerClient } from '../local-db/server-client'
 import { isLocalMode } from './mode'
 
+const fetchWithoutCache: typeof fetch = (input, init) =>
+  fetch(input, { ...init, cache: 'no-store' })
+
 // Service-key client: bypasses RLS, so use it only inside API routes.
 export const db = () => {
   if (isLocalMode()) {
@@ -11,6 +14,7 @@ export const db = () => {
   }
   return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
     auth: { persistSession: false },
+    global: { fetch: fetchWithoutCache },
   })
 }
 
