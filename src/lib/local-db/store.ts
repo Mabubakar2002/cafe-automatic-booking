@@ -364,30 +364,41 @@ function ensureOffersAndDeals(db: LocalDbData) {
   }
 }
 
+// Ensure every collection exists and is an array, so a corrupted/partial
+// data file can never crash queries with "null.filter" / "null.forEach".
+function normalizeDb(loaded: any): LocalDbData {
+  const data = getInitialData()
+  for (const key of Object.keys(data) as Array<keyof LocalDbData>) {
+    const val = loaded?.[key]
+    data[key] = Array.isArray(val) ? val : data[key]
+  }
+  return data
+}
+
 function loadDb(): LocalDbData {
   if (memDb) return memDb
   try {
     if (fs.existsSync(DB_PATH)) {
-      const raw = fs.readFileSync(DB_PATH, 'utf-8')
+      const raw = fs.readFileSync(DB_PATH, 'utf-8').replace(/^\uFEFF/, '')
       const loaded = JSON.parse(raw) as LocalDbData
-      memDb = loaded
-      if (!loaded.staff_activity) loaded.staff_activity = []
-      if (!loaded.customer_loyalty) loaded.customer_loyalty = []
-      for (const session of loaded.table_sessions ?? []) {
+      memDb = normalizeDb(loaded)
+      if (!memDb.staff_activity) memDb.staff_activity = []
+      if (!memDb.customer_loyalty) memDb.customer_loyalty = []
+      for (const session of memDb.table_sessions ?? []) {
         if (!session.customer_key && session.phone && session.customer_name) {
           session.customer_key = customerKey(session.phone, session.customer_name)
         }
       }
-      for (const customer of loaded.customer_loyalty) {
+      for (const customer of memDb.customer_loyalty) {
         if (!customer.customer_key && customer.phone && customer.customer_name) {
           customer.customer_key = customerKey(customer.phone, customer.customer_name)
         }
       }
-      ensureOffersAndDeals(loaded)
+      ensureOffersAndDeals(memDb)
       saveDb()
-      const maxOrder = loaded.orders?.reduce((m, o) => Math.max(m, o.order_no || 0), 100) || 100
+      const maxOrder = memDb.orders?.reduce((m, o) => Math.max(m, o.order_no || 0), 100) || 100
       orderCounter = maxOrder
-      return loaded
+      return memDb
     }
   } catch (e) {
     console.error('Error reading local db, initializing defaults', e)

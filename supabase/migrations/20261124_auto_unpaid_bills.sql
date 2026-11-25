@@ -4,7 +4,7 @@ declare new_id uuid; i jsonb; iid uuid; queue int; subtotal numeric;
 begin
   select count(*) into queue from orders where status in ('new', 'preparing');
   insert into orders (session_id, status, note, est_wait_min)
-  values (p_session, 'pending', p_note, least(10 + queue * 4, 60)) returning id into new_id;
+  values (p_session, 'new', p_note, least(10 + queue * 4, 60)) returning id into new_id;
 
   for i in select value from jsonb_array_elements(p_items) loop
     iid := null;

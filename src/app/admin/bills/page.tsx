@@ -11,6 +11,7 @@ export default function Bills() {
   const [method, setMethod] = useState<Record<string, string>>({})
   const [expanded, setExpanded] = useState<Record<string, boolean>>({})
   const [toast, setToast] = useState<string | null>(null)
+  const [loyaltyMap, setLoyaltyMap] = useState<Record<string, any>>({})
   const prevUnpaid = useRef<string[]>([])
 
   const [bills, reload] = useLive(
@@ -21,7 +22,7 @@ export default function Bills() {
           .from('bills')
           .select(
             'id,subtotal,tip,total,method,status,paid_at,created_at,session_id,' +
-            'table_sessions(customer_name,phone,closed_at,cafe_tables(number),' +
+            'table_sessions(customer_name,phone,customer_key,closed_at,cafe_tables(number),' +
             'orders(id,order_no,status,created_at,note,' +
             'order_items(qty,unit_price,note,menu_items(name),order_item_modifiers(price,modifiers(name)))))'
           )
@@ -31,6 +32,30 @@ export default function Bills() {
       ).data ?? [],
     [] as any[]
   )
+
+  // Fetch loyalty data for all customers in bills
+  useEffect(() => {
+    const keys = new Set<string>()
+    bills.forEach((b: any) => {
+      const key = b.table_sessions?.customer_key
+      if (key) keys.add(key)
+    })
+    if (keys.size === 0) return
+    const fetchLoyalty = async () => {
+      const map: Record<string, any> = {}
+      try {
+        const { data } = await sb
+          .from('customer_loyalty')
+          .select('customer_key,phone,customer_name,visit_dates,visit_count,completed,reward_percent')
+          .in('customer_key', [...keys])
+        ;(data ?? []).forEach((row: any) => {
+          map[row.customer_key] = row
+        })
+      } catch {}
+      setLoyaltyMap(map)
+    }
+    fetchLoyalty()
+  }, [bills])
 
   // 🔔 Notify when new unpaid bill appears
   useEffect(() => {
@@ -120,6 +145,7 @@ export default function Bills() {
               expanded={!!expanded[b.id]}
               onToggle={() => setExpanded(prev => ({ ...prev, [b.id]: !prev[b.id] }))}
               cafeName={cafe}
+              loyaltyMap={loyaltyMap}
             />
           ))}
         </section>
@@ -148,6 +174,7 @@ export default function Bills() {
               expanded={!!expanded[b.id]}
               onToggle={() => setExpanded(prev => ({ ...prev, [b.id]: !prev[b.id] }))}
               cafeName={cafe}
+              loyaltyMap={loyaltyMap}
             />
           ))}
         </section>
@@ -160,7 +187,7 @@ export default function Bills() {
 
 /* ───────── Bill Card Component ───────── */
 function BillCard({
-  b, method, onMethodChange, onPay, expanded, onToggle, cafeName
+  b, method, onMethodChange, onPay, expanded, onToggle, cafeName, loyaltyMap
 }: {
   b: any
   method: string
@@ -169,6 +196,7 @@ function BillCard({
   expanded: boolean
   onToggle: () => void
   cafeName: string
+  loyaltyMap: Record<string, any>
 }) {
   const isPaid = b.status === 'paid'
   const tableNum = b.table_sessions?.cafe_tables?.number ?? '?'
@@ -211,6 +239,11 @@ function BillCard({
           </p>
           {phone && (
             <p className="text-xs text-ink/50">{phone}</p>
+          )}
+          {b.table_sessions?.customer_key && loyaltyMap[b.table_sessions.customer_key] && (
+            <p className={`text-xs font-bold ${loyaltyMap[b.table_sessions.customer_key].completed ? 'text-basil' : 'text-amber-800'}`}>
+              {loyaltyMap[b.table_sessions.customer_key].completed ? '🎁 Reward Ready!' : `${loyaltyMap[b.table_sessions.customer_key].visit_count}/7 visits`}
+            </p>
           )}
         </div>
 

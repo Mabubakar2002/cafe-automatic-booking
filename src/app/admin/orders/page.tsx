@@ -1,7 +1,7 @@
 'use client'
+import { useEffect, useState } from 'react'
 import { useLive } from '@/lib/live'
 import { supabase } from '@/lib/supabase/client'
-import { useState } from 'react'
 import { itemTotal, money } from '@/lib/util'
 
 const statusStyle: Record<string, string> = {
@@ -17,6 +17,7 @@ export default function Orders() {
   const sb = supabase()
   const [busyId, setBusyId] = useState<string | null>(null)
   const [filter, setFilter] = useState<'all' | 'pending' | 'active' | 'completed'>('all')
+  const [loyaltyMap, setLoyaltyMap] = useState<Record<string, any>>({})
   const [orders] = useLive(
     ['orders', 'bills'],
     async () =>
@@ -24,7 +25,7 @@ export default function Orders() {
         await sb
           .from('orders')
           .select(
-            'id,order_no,status,created_at,table_sessions(customer_name,phone,cafe_tables(number),bills(status)),' +
+            'id,order_no,status,created_at,table_sessions(customer_name,phone,customer_key,cafe_tables(number),bills(status)),' +
               'order_items(qty,unit_price,note,menu_items(name),order_item_modifiers(price,modifiers(name))),' +
               'order_usage(expected_qty,used_qty,ingredients(name,unit))'
           )
@@ -33,6 +34,30 @@ export default function Orders() {
       ).data ?? [],
     [] as any[]
   )
+
+  // Fetch loyalty data for all customers in orders
+  useEffect(() => {
+    const keys = new Set<string>()
+    orders.forEach((o: any) => {
+      const key = o.table_sessions?.customer_key
+      if (key) keys.add(key)
+    })
+    if (keys.size === 0) return
+    const fetchLoyalty = async () => {
+      const map: Record<string, any> = {}
+      try {
+        const { data } = await sb
+          .from('customer_loyalty')
+          .select('customer_key,phone,customer_name,visit_dates,visit_count,completed,reward_percent')
+          .in('customer_key', [...keys])
+        ;(data ?? []).forEach((row: any) => {
+          map[row.customer_key] = row
+        })
+      } catch {}
+      setLoyaltyMap(map)
+    }
+    fetchLoyalty()
+  }, [orders])
 
   async function setStatus(orderId: string, status: 'new' | 'cancelled') {
     setBusyId(orderId)
@@ -96,6 +121,15 @@ export default function Orders() {
                       {o.status !== 'cancelled' && (
                         <span className={`rounded-full px-2.5 py-1 text-xs font-bold ${bill?.status === 'paid' ? 'bg-basil/15 text-basil' : 'bg-chilli/10 text-chilli'}`}>
                           {bill?.status === 'paid' ? '✓ Paid' : 'Unpaid'}
+                        </span>
+                      )}
+                      {o.table_sessions?.customer_key && loyaltyMap[o.table_sessions.customer_key] && (
+                        <span
+                          className={`rounded-full px-2.5 py-1 text-xs font-bold ${
+                            loyaltyMap[o.table_sessions.customer_key].completed ? 'bg-basil/15 text-basil' : 'bg-sun/15 text-amber-800'
+                          }`}
+                        >
+                          {loyaltyMap[o.table_sessions.customer_key].completed ? '🎁 Reward Ready' : `${loyaltyMap[o.table_sessions.customer_key].visit_count}/7 visits`}
                         </span>
                       )}
                     </div>

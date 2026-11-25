@@ -167,6 +167,7 @@ export default function Customer({ table }: { table: number }) {
   const calling = !!sess?.bell_calls?.some((b: any) => b.status === 'open')
   const cartCount = cart.reduce((s, l) => s + l.qty, 0)
   const cartTotal = cart.reduce((s, l) => s + lineTotal(l), 0)
+  const loyaltyPercent = loyalty?.visit_count ? (loyalty.visit_count / 7) * 100 : 0
 
   function addLine(l: Line) {
     setCart(c => {
@@ -342,6 +343,29 @@ export default function Customer({ table }: { table: number }) {
               </button>
             ))}
           </nav>
+          {loyalty && loyalty.visit_count > 0 && (
+            <div className="px-4 mb-3 rounded-2xl bg-gradient-to-r from-sun via-sun/90 to-sun/80 p-4 text-ink shadow-sm">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-bold text-ink/80 uppercase tracking-wider">🎁 Loyalty Reward</span>
+                {loyalty.completed ? (
+                  <span className="rounded-full bg-white text-ink px-2 py-0.5 text-xs font-black">Reward Ready!</span>
+                ) : (
+                  <span className="text-xs font-bold text-ink/80">{loyalty.visit_count}/7 visits</span>
+                )}
+              </div>
+              <div className="h-2 bg-white/30 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-white rounded-full transition-all duration-500"
+                  style={{ width: `${Math.min(loyaltyPercent, 100)}%` }}
+                />
+              </div>
+              {loyalty.completed ? (
+                <p className="mt-2 text-sm font-bold text-ink">Show this to staff for <span className="text-chilli">20% OFF</span> on your next bill!</p>
+              ) : (
+                <p className="mt-2 text-xs text-ink/70">{7 - loyalty.visit_count} more visit{7 - loyalty.visit_count !== 1 ? 's' : ''} to unlock your reward.</p>
+              )}
+            </div>
+          )}
           {!menu && <p className="px-4 py-8 text-center text-ink/60">Loading menu…</p>}
           <ul className="space-y-3 px-4">
             {shown.map(it => {
@@ -374,6 +398,23 @@ export default function Customer({ table }: { table: number }) {
 
       {tab === 'cart' && (
         <section className="space-y-3 px-4 pt-4">
+          {loyalty && loyalty.visit_count > 0 && (
+            <div className="mb-3 rounded-2xl bg-gradient-to-r from-sun via-sun/90 to-sun/80 p-4 text-ink shadow-sm">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-bold text-ink/80 uppercase tracking-wider">🎁 Loyalty Reward</span>
+                {loyalty.completed ? (
+                  <span className="rounded-full bg-white text-ink px-2 py-0.5 text-xs font-black">Reward Ready!</span>
+                ) : (
+                  <span className="text-xs font-bold text-ink/80">{loyalty.visit_count}/7 visits</span>
+                )}
+              </div>
+              {loyalty.completed ? (
+                <p className="text-sm font-bold text-ink">Show this to staff for <span className="text-chilli">20% OFF</span> on your next bill!</p>
+              ) : (
+                <p className="text-xs text-ink/70">{7 - loyalty.visit_count} more visit{7 - loyalty.visit_count !== 1 ? 's' : ''} to unlock your reward.</p>
+              )}
+            </div>
+          )}
           {!cart.length && <p className="py-10 text-center text-ink/60">Your cart is empty.</p>}
           {cart.map((l, i) => (
             <div key={lineKey(l)} className="flex items-center gap-3 rounded-2xl bg-white p-3 ring-1 ring-ink/10">
