@@ -11,7 +11,7 @@ export async function openSession(sb: SupabaseClient, id: string | null, table: 
       .maybeSingle()
     if (data) {
       const { data: t } = await sb.from('cafe_tables').select('number').eq('id', data.table_id).maybeSingle()
-      if (t?.number === table) return data as { id: string; phone: string | null }
+      if (t?.number === table) return { ...(data as { id: string; phone: string | null }), isNew: false }
     }
   }
   const { data: t } = await sb.from('cafe_tables').select('id').eq('number', table).maybeSingle()
@@ -27,5 +27,5 @@ export async function openSession(sb: SupabaseClient, id: string | null, table: 
   if (active) return null
 
   const { data } = await sb.from('table_sessions').insert({ table_id: t.id }).select('id,phone').single()
-  return data as { id: string; phone: string | null }
+  return data ? { ...(data as { id: string; phone: string | null }), isNew: true } : null
 }
