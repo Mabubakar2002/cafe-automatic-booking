@@ -4,7 +4,7 @@ Next.js 14 + Tailwind + Supabase. Customers scan a table QR, order and pay; the 
 
 ## Setup
 
-1. Create a Supabase project. In the SQL editor, run `supabase/schema.sql`. For an existing project, run `supabase/migrations/20261124_auto_unpaid_bills.sql` to enable automatic unpaid bills and staff payment-status badges.
+1. Create a Supabase project. In the SQL editor, run `supabase/schema.sql`. For an existing project, run `supabase/migrations/20261124_auto_unpaid_bills.sql` for unpaid-bill tracking and `supabase/migrations/20261125_repeat_visit_waiter_eta.sql` for repeat-visit rewards and kitchen ETA notes.
 2. In Authentication > Users, create one admin and one kitchen user, then run the two `insert into staff` lines at the bottom of the schema with their emails.
 3. Copy `.env.example` to `.env.local` and fill it in (Project Settings > API for the keys).
 4. `npm install` then `npm run dev`.
@@ -16,7 +16,7 @@ Next.js 14 + Tailwind + Supabase. Customers scan a table QR, order and pay; the 
 | --- | --- | --- |
 | `/t/5` | Customer | Menu, cart, live order status, waiter bell, bill, feedback |
 | `/kitchen` | Kitchen, admin | Live orders with add-ons. Start, then Done (amounts pre-filled), then Served |
-| `/admin` | Admin | Overview, orders, bills, menu, stock, expenses, reports, feedback, QR codes |
+| `/admin` | Admin | Overview, orders, bills, menu, stock, expenses, reports, reward history, feedback, QR codes |
 
 ## Deploy
 

@@ -14,6 +14,7 @@ const links = [
   ['/admin/stock', 'Stock', '◆'],
   ['/admin/expenses', 'Expenses', '₹'],
   ['/admin/reports', 'Reports', '↗'],
+  ['/admin/rewards', 'Rewards history', '★'],
   ['/admin/feedback', 'Feedback', '★'],
   ['/admin/tables', 'Tables & QR', '⊞'],
   ['/admin/activity', 'Staff Activity', '◷'],
