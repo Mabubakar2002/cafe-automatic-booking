@@ -54,6 +54,7 @@ export default function Bills() {
       body: JSON.stringify({ billId: id, method: method[id] }),
     }).then(r => r.json())
     if (r.error) { alert(r.error); return }
+    if (r.warning) alert(r.warning)
     try {
       const bc = new BroadcastChannel('cafe-live-events')
       bc.postMessage({ table: 'bills' })

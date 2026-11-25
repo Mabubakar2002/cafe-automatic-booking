@@ -61,9 +61,13 @@ create table table_sessions (
   table_id uuid not null references cafe_tables,
   customer_name text,
   phone text,                               -- digits with country code, for the WhatsApp thank-you
+  customer_key text,
   started_at timestamptz default now(),
   closed_at timestamptz
 );
+create index if not exists table_sessions_customer_key_idx
+  on table_sessions (customer_key)
+  where customer_key is not null;
 
 create table orders (
   id uuid primary key default gen_random_uuid(),
@@ -72,6 +76,7 @@ create table orders (
   status text not null default 'pending'
     check (status in ('pending','new','preparing','ready','served','cancelled')),
   note text,
+  eta_note text,
   est_wait_min int,
   created_at timestamptz default now(),
   started_at timestamptz,
@@ -117,6 +122,7 @@ create table bell_calls (
   id uuid primary key default gen_random_uuid(),
   session_id uuid not null references table_sessions,
   status text default 'open' check (status in ('open','done')),
+  note text,
   created_at timestamptz default now(),
   handled_at timestamptz
 );
@@ -172,7 +178,8 @@ create table staff_activity (
 
 create table customer_loyalty (
   id uuid primary key default gen_random_uuid(),
-  phone text unique not null,
+  customer_key text unique not null,
+  phone text not null,
   customer_name text,
   visit_dates jsonb not null default '[]'::jsonb,
   visit_count int not null default 0,

@@ -1,6 +1,7 @@
 import fs from 'fs'
 import path from 'path'
 import { randomUUID } from 'crypto'
+import { customerKey } from '../loyalty'
 
 export interface LocalDbData {
   cafe_tables: any[]
@@ -368,14 +369,25 @@ function loadDb(): LocalDbData {
   try {
     if (fs.existsSync(DB_PATH)) {
       const raw = fs.readFileSync(DB_PATH, 'utf-8')
-      memDb = JSON.parse(raw)
-      if (!memDb?.staff_activity) memDb!.staff_activity = []
-      if (!memDb?.customer_loyalty) memDb!.customer_loyalty = []
-      ensureOffersAndDeals(memDb!)
+      const loaded = JSON.parse(raw) as LocalDbData
+      memDb = loaded
+      if (!loaded.staff_activity) loaded.staff_activity = []
+      if (!loaded.customer_loyalty) loaded.customer_loyalty = []
+      for (const session of loaded.table_sessions ?? []) {
+        if (!session.customer_key && session.phone && session.customer_name) {
+          session.customer_key = customerKey(session.phone, session.customer_name)
+        }
+      }
+      for (const customer of loaded.customer_loyalty) {
+        if (!customer.customer_key && customer.phone && customer.customer_name) {
+          customer.customer_key = customerKey(customer.phone, customer.customer_name)
+        }
+      }
+      ensureOffersAndDeals(loaded)
       saveDb()
-      const maxOrder = memDb?.orders?.reduce((m, o) => Math.max(m, o.order_no || 0), 100) || 100
+      const maxOrder = loaded.orders?.reduce((m, o) => Math.max(m, o.order_no || 0), 100) || 100
       orderCounter = maxOrder
-      return memDb!
+      return loaded
     }
   } catch (e) {
     console.error('Error reading local db, initializing defaults', e)

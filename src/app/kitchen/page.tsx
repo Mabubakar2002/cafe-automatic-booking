@@ -22,7 +22,7 @@ export default function Kitchen() {
       const [o, u, i] = await Promise.all([
         sb
           .from('orders')
-          .select('id,order_no,status,note,created_at,est_wait_min,table_sessions(cafe_tables(number),bills(status)),order_items(id,qty,note,menu_items(name),order_item_modifiers(modifiers(name)))')
+          .select('id,order_no,status,note,eta_note,created_at,est_wait_min,table_sessions(cafe_tables(number),bills(status)),order_items(id,qty,note,menu_items(name),order_item_modifiers(modifiers(name)))')
           .in('status', ['new', 'preparing', 'ready'])
           .order('created_at'),
         sb.from('order_expected_usage').select('order_id,ingredient_id,qty'),
@@ -89,6 +89,10 @@ function Card({ o, border, rows, reload }: { o: any; border: string; rows: Row[]
   const [vals, setVals] = useState<Record<string, string>>({})
   const [busy, setBusy] = useState(false)
   const [extrasChecked, setExtrasChecked] = useState(false)
+  const [etaOpen, setEtaOpen] = useState(false)
+  const [extraMinutes, setExtraMinutes] = useState('10')
+  const [etaNote, setEtaNote] = useState('')
+  const [etaError, setEtaError] = useState('')
   const sessionBills = o.table_sessions?.bills
   const bill = Array.isArray(sessionBills) ? sessionBills[0] : sessionBills
 
@@ -116,6 +120,35 @@ function Card({ o, border, rows, reload }: { o: any; border: string; rows: Row[]
     setBusy(false)
     if (error) alert(error.message)
     else reload()
+  }
+
+  async function saveEta() {
+    setBusy(true)
+    setEtaError('')
+    try {
+      const response = await fetch('/api/kitchen/eta', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderId: o.id, extraMinutes: Number(extraMinutes), note: etaNote }),
+      })
+      const result = await response.json()
+      if (!response.ok) {
+        setEtaError(result.error || 'Could not update the order time')
+        return
+      }
+      try {
+        const bc = new BroadcastChannel('cafe-live-events')
+        bc.postMessage({ table: 'orders' })
+        bc.close()
+      } catch {}
+      setEtaOpen(false)
+      setEtaNote('')
+      reload()
+    } catch {
+      setEtaError('Could not update the order time. Check the connection and try again.')
+    } finally {
+      setBusy(false)
+    }
   }
 
   const hasSpecialDemands = !!o.note || o.order_items.some((oi: any) => oi.note || oi.order_item_modifiers?.length > 0)
@@ -247,6 +280,7 @@ function Card({ o, border, rows, reload }: { o: any; border: string; rows: Row[]
             >
               <span>🍳 Start Cooking</span>
             </button>
+            <button className="btn-soft text-xs" disabled={busy} onClick={() => setEtaOpen(true)}>Add time</button>
             <button className="btn-soft" disabled={busy} onClick={() => confirm('Cancel this order?') && update({ status: 'cancelled' })}>Cancel</button>
           </>
         )}
@@ -259,6 +293,7 @@ function Card({ o, border, rows, reload }: { o: any; border: string; rows: Row[]
             >
               <span>✅ Mark Done</span>
             </button>
+            <button className="btn-soft text-xs" disabled={busy} onClick={() => setEtaOpen(true)}>Add time</button>
             {rows.length > 0 && (
               <button className="btn-soft text-xs" onClick={() => setEdit(!edit)}>{edit ? 'Hide' : 'Edit amounts'}</button>
             )}
@@ -274,6 +309,45 @@ function Card({ o, border, rows, reload }: { o: any; border: string; rows: Row[]
           </button>
         )}
       </div>
+      {o.eta_note && (
+        <p className="rounded-xl bg-sun/25 px-3 py-2 text-sm text-ink">
+          <strong>Customer update:</strong> {o.eta_note}
+        </p>
+      )}
+      {etaOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/60 p-4" role="dialog" aria-modal="true" aria-labelledby={`eta-title-${o.id}`}>
+          <div className="w-full max-w-md space-y-3 rounded-2xl bg-white p-5 shadow-2xl" onClick={event => event.stopPropagation()}>
+            <h2 id={`eta-title-${o.id}`} className="text-xl font-black">Update Order #{o.order_no}</h2>
+            <label className="block text-sm font-bold">
+              Extra minutes to add
+              <input
+                type="number"
+                min="1"
+                max="180"
+                step="1"
+                className="input mt-1"
+                value={extraMinutes}
+                onChange={event => setExtraMinutes(event.target.value)}
+              />
+            </label>
+            <label className="block text-sm font-bold">
+              Note for the customer
+              <textarea
+                className="input mt-1 min-h-24"
+                maxLength={500}
+                placeholder="For example: Your order needs a few more minutes."
+                value={etaNote}
+                onChange={event => setEtaNote(event.target.value)}
+              />
+            </label>
+            {etaError && <p role="alert" className="text-sm font-semibold text-chilli">{etaError}</p>}
+            <div className="flex gap-2">
+              <button className="btn-soft flex-1" disabled={busy} onClick={() => setEtaOpen(false)}>Cancel</button>
+              <button className="btn-main flex-1" disabled={busy} onClick={saveEta}>{busy ? 'Saving…' : 'Update customer'}</button>
+            </div>
+          </div>
+        </div>
+      )}
     </article>
   )
 }

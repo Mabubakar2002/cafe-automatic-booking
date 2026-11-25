@@ -52,6 +52,8 @@ export default function Customer({ table }: { table: number }) {
   const [comment, setComment] = useState('')
   const [showScratch, setShowScratch] = useState(false)
   const [tableStatus, setTableStatus] = useState<'checking' | 'available' | 'booked' | 'unavailable'>('checking')
+  const [waiterOpen, setWaiterOpen] = useState(false)
+  const [waiterNote, setWaiterNote] = useState('')
   const [tipPercent, setTipPercent] = useState(0)
   const [customTip, setCustomTip] = useState('')
   const [loyalty, setLoyalty] = useState<any>(null)
@@ -220,9 +222,11 @@ export default function Customer({ table }: { table: number }) {
     refresh()
   }
 
-  async function ring() {
-    const r = await run(() => post('/api/bell', { table, sessionId: closed ? null : sid }))
+  async function ring(note: string) {
+    const r = await run(() => post('/api/bell', { table, sessionId: closed ? null : sid, note }))
     if (r.error) return
+    setWaiterOpen(false)
+    setWaiterNote('')
     if (r.sessionId !== sid) {
       localStorage.setItem('cafe-sid', r.sessionId)
       setSid(r.sessionId)
@@ -309,7 +313,7 @@ export default function Customer({ table }: { table: number }) {
         <button
           className="rounded-xl bg-sun px-3 py-2 text-sm font-bold text-ink disabled:opacity-60"
           disabled={busy || calling}
-          onClick={ring}
+          onClick={() => setWaiterOpen(true)}
         >
           {calling ? 'Waiter is coming' : 'Call waiter'}
         </button>
@@ -488,6 +492,12 @@ export default function Customer({ table }: { table: number }) {
                     <i key={n} className={`h-1.5 flex-1 rounded ${n <= step ? (step === 2 ? 'bg-basil' : 'bg-chilli') : 'bg-ink/10'}`} />
                   ))}
                 </div>
+
+                {o.eta_note && ['new', 'preparing'].includes(o.status) && (
+                  <p className="mx-4 mb-3 rounded-xl bg-sun/25 px-3 py-2 text-sm text-ink">
+                    <strong>Kitchen update:</strong> {o.eta_note}
+                  </p>
+                )}
 
                 {/* 🕐 Stylish Cooking Timer — only when kitchen has started */}
                 {isCooking && o.started_at && (
@@ -700,7 +710,7 @@ export default function Customer({ table }: { table: number }) {
           <div className="rounded-3xl bg-white p-4 ring-1 ring-ink/10">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs font-bold uppercase tracking-wider text-ink/40">7-Day Visit Reward</p>
+                <p className="text-xs font-bold uppercase tracking-wider text-ink/40">Paid visits in your 7-day cycle</p>
                 <h3 className="mt-1 text-lg font-black">
                   {loyaltyError ? 'Visit history unavailable' : loyalty?.completed ? 'Reward unlocked!' : `${loyalty?.visit_count ?? 0} of 7 visits complete`}
                 </h3>
@@ -763,6 +773,34 @@ export default function Customer({ table }: { table: number }) {
           </button>
         ))}
       </nav>
+
+      {waiterOpen && (
+        <div className="fixed inset-0 z-30 flex items-end bg-ink/50" onClick={() => setWaiterOpen(false)}>
+          <div
+            className="mx-auto w-full max-w-lg space-y-3 rounded-t-3xl bg-white p-5"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="waiter-call-title"
+            onClick={event => event.stopPropagation()}
+          >
+            <h2 id="waiter-call-title" className="text-xl font-extrabold">Call the waiter</h2>
+            <label className="block text-sm font-semibold">
+              Note for staff (optional)
+              <textarea
+                className="input mt-1 min-h-24"
+                maxLength={500}
+                placeholder="For example: Please bring some water."
+                value={waiterNote}
+                onChange={event => setWaiterNote(event.target.value)}
+              />
+            </label>
+            <div className="flex gap-2">
+              <button className="btn-soft flex-1" disabled={busy} onClick={() => setWaiterOpen(false)}>Cancel</button>
+              <button className="btn-main flex-1" disabled={busy} onClick={() => ring(waiterNote)}>Call waiter</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {pick && (
         <div className="fixed inset-0 z-30 flex items-end bg-ink/50" onClick={() => setPick(null)}>

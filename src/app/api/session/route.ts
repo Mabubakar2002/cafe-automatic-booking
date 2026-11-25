@@ -15,7 +15,7 @@ export async function GET(req: Request) {
       .from('table_sessions')
       .select(
         'id,closed_at,customer_name,phone,' +
-          'orders(id,order_no,status,est_wait_min,created_at,started_at,order_items(qty,unit_price,menu_items(name),order_item_modifiers(price,modifiers(name)))),' +
+          'orders(id,order_no,status,est_wait_min,eta_note,created_at,started_at,order_items(qty,unit_price,menu_items(name),order_item_modifiers(price,modifiers(name)))),' +
           'bell_calls(status),bills(subtotal,tip,total,status),feedback(id)'
       )
       .eq('id', id)

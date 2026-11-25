@@ -1,7 +1,7 @@
 import { db, staffRole } from '@/lib/supabase/server'
 import { notify } from '@/lib/notify'
 import { bad, ok } from '@/lib/api'
-import { visitSummary } from '@/lib/loyalty'
+import { syncCustomerLoyalty } from '@/lib/loyalty'
 
 export const dynamic = 'force-dynamic'
 
@@ -22,37 +22,25 @@ export async function POST(req: Request) {
     .single()
   if (error) return bad(error.message)
 
-  const { data: s } = await sb
+  const { data: s, error: sessionError } = await sb
     .from('table_sessions')
     .update({ closed_at: now })
     .eq('id', bill.session_id)
     .select('customer_name,phone')
     .single()
-  if (s?.phone) {
-    const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Karachi' })
-    const { data: existing } = await sb
-      .from('customer_loyalty')
-      .select('id,visit_dates,visit_count,completed')
-      .eq('phone', s.phone)
-      .maybeSingle()
-    const datesRaw = Array.isArray(existing?.visit_dates) ? existing.visit_dates : []
-    const summary = visitSummary([...datesRaw, today])
-    if (existing) {
-      await sb.from('customer_loyalty').update({
-        customer_name: s.customer_name,
-        ...summary,
-        reward_percent: 20,
-        updated_at: now,
-      }).eq('id', existing.id)
-    } else {
-      await sb.from('customer_loyalty').insert({
-        phone: s.phone,
-        customer_name: s.customer_name,
-        ...summary,
-        reward_percent: 20,
-      })
+  let warning: string | undefined
+  if (sessionError) {
+    console.error('Payment approved but customer visit could not be closed', sessionError)
+    warning = 'Payment was approved, but the visit could not be closed.'
+  }
+  if (!sessionError && s?.phone && s.customer_name) {
+    try {
+      await syncCustomerLoyalty(sb, s.phone, s.customer_name)
+    } catch (error) {
+      console.error('Payment approved but customer reward sync failed', error)
+      warning = 'Payment was approved, but reward history could not be updated.'
     }
   }
   await notify('thanks', { name: s?.customer_name, phone: s?.phone })
-  return ok()
+  return ok(warning ? { warning } : {})
 }

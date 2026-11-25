@@ -11,7 +11,7 @@ export default function BellAlerts() {
     ['bell_calls', 'feedback', 'orders'],
     async () => {
       const [b, f, o] = await Promise.all([
-        sb.from('bell_calls').select('id,status,created_at,table_sessions(customer_name,cafe_tables(number))').eq('status', 'open').order('created_at'),
+        sb.from('bell_calls').select('id,status,note,created_at,table_sessions(customer_name,cafe_tables(number))').eq('status', 'open').order('created_at'),
         sb.from('feedback').select('id,rating,comment').order('created_at', { ascending: false }).limit(1),
         sb.from('orders').select('id,order_no,status,created_at,table_sessions(customer_name,cafe_tables(number))').eq('status', 'pending').order('created_at', { ascending: false }),
       ])
@@ -77,6 +77,7 @@ export default function BellAlerts() {
                   {custName ? `Customer: ${custName} • ` : ''}
                   Called at {new Date(b.created_at || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                 </p>
+                {b.note && <p className="mt-1 rounded-lg bg-white/15 px-2 py-1 text-sm font-semibold">Note: {b.note}</p>}
               </div>
             </div>
             <button
